@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Krtek Adam - Edukativní Dobrodružství</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1a100a;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            padding: 10px;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        h1 { margin-bottom: 5px; color: #d4a373; font-size: 1.8rem; text-align: center; }
+
+        .info-card {
+            background: #2c1d11;
+            border: 2px solid #5c3d24;
+            border-radius: 8px;
+            padding: 12px;
+            max-width: 500px;
+            width: 100%;
+            margin-bottom: 15px;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            box-sizing: border-box;
+        }
+
+        .info-card h3 { color: #ffaa00; margin-top: 0; margin-bottom: 5px; }
+
+        #auth-screen {
+            background: #3a2617;
+            border: 3px solid #d4a373;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            margin-bottom: 20px;
+            box-sizing: border-box;
+        }
+
+        .input-group { margin: 10px 0; text-align: left; }
+        .input-group label { display: block; margin-bottom: 3px; color: #d4a373; font-weight: bold; font-size: 0.85rem; }
+        .input-group input, .input-group select {
+            width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #d4a373;
+            background: #2c1d11; color: white; font-size: 0.9rem; box-sizing: border-box;
+        }
+
+        #game-container { display: none; flex-direction: column; align-items: center; width: 100%; max-width: 1050px; }
+
+        #stats-bar {
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; font-size: 0.85rem;
+            margin-bottom: 10px; background: #2c1d11; padding: 10px; border-radius: 8px;
+            border: 2px solid #5c3d24; width: 100%; box-sizing: border-box; align-items: center;
+        }
+
+        #dev-panel {
+            display: none; background: #4a0000; border: 2px solid #ff4444; padding: 10px;
+            border-radius: 8px; width: 100%; box-sizing: border-box; margin-bottom: 10px; text-align: center;
+        }
+        #dev-panel h3 { margin: 0 0 8px 0; color: #ffaa00; font-size: 0.95rem; }
+        .dev-btns { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; }
+
+        #main-game-layout { display: flex; flex-direction: row; gap: 15px; align-items: flex-start; justify-content: center; width: 100%; }
+
+        #shop-panel {
+            width: 220px; min-height: 410px; background: #2c1d11; border: 3px solid #5c3d24;
+            border-radius: 8px; padding: 10px; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px;
+        }
+        #shop-panel h3 { margin: 0; font-size: 1rem; color: #ffaa00; text-align: center; border-bottom: 1px solid #5c3d24; padding-bottom: 5px; }
+
+        .shop-item { background: rgba(0,0,0,0.3); border: 1px solid #d4a373; border-radius: 6px; padding: 8px; text-align: center; }
+        .shop-item p { margin: 3px 0; font-size: 0.75rem; color: #d4a373; }
+
+        #board-wrapper { position: relative; }
+        #game-board {
+            display: grid; grid-template-columns: repeat(10, 35px); grid-template-rows: repeat(10, 35px);
+            gap: 2px; background-color: #000; padding: 5px; border: 4px solid #5c3d24; border-radius: 8px;
+        }
+
+        #game-log-panel {
+            width: 220px; height: 410px; background: #2c1d11; border: 3px solid #5c3d24;
+            border-radius: 8px; padding: 10px; box-sizing: border-box; display: flex; flex-direction: column;
+        }
+        #game-log-panel h3 { margin: 0 0 8px 0; font-size: 1rem; color: #ffaa00; text-align: center; border-bottom: 1px solid #5c3d24; padding-bottom: 5px; }
+        #log-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 5px; overflow-y: auto; max-height: 360px; }
+        #log-list li { font-size: 0.75rem; padding: 4px 6px; background: rgba(0, 0, 0, 0.3); border-left: 3px solid #d4a373; border-radius: 3px; word-break: break-word; }
+
+        @media (max-width: 850px) {
+            #main-game-layout { flex-direction: column; align-items: center; }
+            #shop-panel, #game-log-panel { width: 100%; max-width: 400px; min-height: auto; }
+        }
+
+        .cell { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; border-radius: 4px; }
+        .cell.dirt { background-color: #4a3319; } .cell.dirt.dug { background-color: #2b1d0e; }
+        .cell.sand { background-color: #c2b280; } .cell.sand.dug { background-color: #8c7e56; }
+        .cell.rock { background-color: #708090; } .cell.rock.dug { background-color: #434b54; }
+        .cell.magma { background-color: #a83232; } .cell.magma.dug { background-color: #5e1b1b; }
+
+        #mobile-controls { display: grid; grid-template-columns: repeat(3, 45px); grid-template-rows: repeat(2, 45px); gap: 5px; margin-top: 10px; }
+        .d-pad-btn { background-color: #5c3d24; color: white; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; border-radius: 6px; }
+
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); justify-content: center; align-items: center; z-index: 10; }
+        .modal-content { background: #3a2617; border: 3px solid #d4a373; padding: 20px; border-radius: 12px; text-align: center; max-width: 400px; width: 90%; }
+
+        button { background-color: #d4a373; color: #2c1d11; border: none; padding: 6px 10px; margin: 3px; font-size: 0.85rem; font-weight: bold; border-radius: 5px; cursor: pointer; }
+        button:hover { background-color: #faedcd; }
+        button:disabled { background-color: #555 !important; color: #888 !important; cursor: not-allowed; }
+        button.danger { background-color: #e63946; color: white; }
+        button.success { background-color: #2a9d8f; color: white; }
+        button.dev { background-color: #ffaa00; color: #000; }
+
+        #leaderboard-section, #teacher-panel, #admin-master-panel {
+            width: 100%; max-width: 850px; margin-top: 20px; background: #2c1d11; border: 2px solid #5c3d24; border-radius: 8px; padding: 12px; box-sizing: border-box;
+        }
+
+        .admin-card { background: #1e120b; border: 1px solid #ffaa00; padding: 12px; border-radius: 6px; margin-top: 10px; }
+        .admin-card h4 { margin: 0 0 8px 0; color: #ffaa00; }
+        
+        .q-box { background: #2b1a10; border: 1px dashed #d4a373; padding: 8px; border-radius: 6px; margin-bottom: 8px; text-align: left; }
+        .q-box input { margin-bottom: 4px; padding: 4px; background: #1a100a; border: 1px solid #5c3d24; color: white; border-radius: 4px; font-size: 0.8rem; }
+
+        .leaderboard-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: left; }
+        .leaderboard-table th, .leaderboard-table td { padding: 5px; border-bottom: 1px solid #4a3319; }
+    </style>
+</head>
+<body>
+
+    <h1>Hra: Krtek Adam 🐾</h1>
+
+    <!-- ÚČET / PŘIHLÁŠENÍ -->
+    <div id="auth-screen">
+        <div class="info-card">
+            <h3>📖 O čem je hra?</h3>
+            <p>Edukativní hra! Prokopávejte se vrstvami a odpovídejte na křečkovy otázky. Učitelé mohou vytvářet výukové projekty s vlastním PINem pro žáky!</p>
+        </div>
+
+        <button style="width:100%; font-size:1rem; background:#52b788; color:white;" onclick="playAsGuest()">🎮 Hrát jako Host</button>
+        <div style="margin: 10px 0; border-bottom: 1px solid #5c3d24;"></div>
+
+        <h3 id="auth-title" style="margin: 5px 0;">Přihlášení Hráče / Učitele</h3>
+        
+        <div class="input-group">
+            <label>Uživatelské jméno:</label>
+            <input type="text" id="username" placeholder="Jméno...">
+        </div>
+
+        <div class="input-group">
+            <label>Heslo:</label>
+            <input type="password" id="password" placeholder="Heslo...">
+        </div>
+
+        <div class="input-group" id="role-group" style="display:none;">
+            <label>Typ účtu:</label>
+            <select id="user-role">
+                <option value="student">👨‍🎓 Žák / Hráč</option>
+                <option value="teacher">👨‍🏫 Učitel</option>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label>Postavička:</label>
+            <select id="player-avatar">
+                <option value="🦔">🦔 Krtek</option>
+                <option value="🦡">🦡 Jezevec</option>
+                <option value="🦦">🦦 Vydra</option>
+            </select>
+        </div>
+
+        <button id="auth-btn" style="width: 100%;" onclick="handleAuth()">Přihlásit se 🔑</button>
+        <div style="margin-top: 10px; font-size: 0.8rem; color: #d4a373; cursor: pointer; text-decoration: underline;" onclick="toggleAuthMode()" id="auth-toggle-btn">Nemáš účet? Registruj se zde.</div>
+    </div>
+
+    <!-- HERNÍ ROZHRANÍ -->
+    <div id="game-container">
+
+        <!-- CHEAT PANEL PRO TVŮRCE -->
+        <div id="dev-panel">
+            <h3>🛠️ OVLÁDÁNÍ TVŮRCE (Cheaty)</h3>
+            <div class="dev-btns">
+                <button class="dev" onclick="devAddHP(100)">💖 +100 HP</button>
+                <button class="dev" onclick="devAddHP(-50)">💔 -50 HP</button>
+                <button class="dev" onclick="devAddScore(500)">⭐ +500 Bodů</button>
+                <button class="dev" onclick="devNextLevel()">⏩ Další Level</button>
+            </div>
+        </div>
+
+        <div id="stats-bar">
+            <div>Hráč: <strong id="display-name" style="color: #d4a373;">-</strong></div>
+            <div>Projekt: <strong id="active-project-name" style="color: #4ccc54;">Výchozí (Obecný)</strong></div>
+            <div>Vrstva: <strong id="level-name" style="color: #ffaa00;">-</strong></div>
+            <div>Křečci: <span id="hamster-count">0/0</span> 🐹</div>
+            <div>Body: <span id="score">0</span> ⭐</div>
+            <div>HP: <span id="hp">100/300</span> ❤️</div>
+            <button class="dev" onclick="promptProjectPIN()">📌 Zadat PIN Projektu</button>
+            <button class="success" onclick="manualSave()">💾 Uložit skóre</button>
+            <button onclick="logout()">Menu / Odejít</button>
+        </div>
+
+        <div id="main-game-layout">
+            <div id="shop-panel">
+                <h3>🛒 Obchod</h3>
+                <div id="shop-items-container"></div>
+            </div>
+
+            <div id="board-wrapper">
+                <div id="game-board"></div>
+            </div>
+
+            <div id="game-log-panel">
+                <h3>📜 Deník</h3>
+                <ul id="log-list"></ul>
+            </div>
+        </div>
+
+        <div id="mobile-controls">
+            <div></div><button class="d-pad-btn" onclick="movePlayer(0, -1)">⬆️</button><div></div>
+            <button class="d-pad-btn" onclick="movePlayer(-1, 0)">⬅️</button>
+            <button class="d-pad-btn" onclick="movePlayer(0, 1)">⬇️</button>
+            <button class="d-pad-btn" onclick="movePlayer(1, 0)">➡️</button>
+        </div>
+
+        <!-- HLAVNÍ ADMIN PANEL (POUZE PRO ADMINA) -->
+        <div id="admin-master-panel" style="display: none; border-color: #ff4444; background: #220808;">
+            <h3 style="color: #ff4444; text-align: center; margin-top: 0;">👑 MASTER ADMIN PANEL (Kompletní Správa Hry)</h3>
+            
+            <!-- 1. Správa Účtů -->
+            <div class="admin-card" style="border-color: #ff4444;">
+                <h4>👤 Správa Všech Účtů (Žáci i Učitelé)</h4>
+                <div id="admin-users-list"></div>
+            </div>
+
+            <!-- 2. Správa Výchozích Otázek -->
+            <div class="admin-card" style="border-color: #ffaa00;">
+                <h4>❓ Správa Výchozích Otázek ve Hře</h4>
+                <div id="admin-questions-list" style="max-height:150px; overflow-y:auto; margin-bottom:8px;"></div>
+                <div class="q-box">
+                    <strong>Přidat novou výchozí otázku do celé hry:</strong>
+                    <input type="text" id="admin-new-q" placeholder="Znění otázky..." style="width:100%;">
+                    <input type="text" id="admin-new-correct" placeholder="✔ Správná odpověď" style="width:100%; border-color:green;">
+                    <input type="text" id="admin-new-w1" placeholder="✖ Špatná odpověď 1" style="width:48%;">
+                    <input type="text" id="admin-new-w2" placeholder="✖ Špatná odpověď 2" style="width:48%;">
+                    <button class="success" style="width:100%; margin-top:5px;" onclick="adminAddGlobalQuestion()">➕ Přidat do Hry</button>
+                </div>
+            </div>
+
+            <!-- 3. Nastavení Parametrů Hry (Jídlo, Pasti, HP) -->
+            <div class="admin-card" style="border-color: #4ccc54;">
+                <h4>⚙️ Nastavení Generování A Parametrů Hry</h4>
+                <div style="display:flex; flex-wrap:wrap; gap:10px; font-size:0.85rem;">
+                    <div><label>Max HP: </label><input type="number" id="admin-cfg-maxhp" style="width:60px;"></div>
+                    <div><label>Šance Jídlo (%): </label><input type="number" id="admin-cfg-food" style="width:50px;" step="1"></div>
+                    <div><label>Šance Jed (%): </label><input type="number" id="admin-cfg-poison" style="width:50px;" step="1"></div>
+                    <div><label>Šance Past (%): </label><input type="number" id="admin-cfg-trap" style="width:50px;" step="1"></div>
+                </div>
+                <button class="dev" style="margin-top:8px;" onclick="adminSaveConfig()">💾 Uložit Nové Parametry</button>
+            </div>
+
+            <!-- 4. Správa Vrstev (Levelů) -->
+            <div class="admin-card" style="border-color: #d4a373;">
+                <h4>🗺️ Správa Vrstev (Levelů)</h4>
+                <div id="admin-levels-list"></div>
+                <div style="margin-top:5px; display:flex; gap:5px;">
+                    <input type="text" id="admin-new-lvl-name" placeholder="Název vrstvy..." style="width:60%;">
+                    <select id="admin-new-lvl-class" style="width:35%;">
+                        <option value="dirt">Hlína (Dirt)</option>
+                        <option value="sand">Písek (Sand)</option>
+                        <option value="rock">Kamení (Rock)</option>
+                        <option value="magma">Magma (Red)</option>
+                    </select>
+                </div>
+                <button class="success" style="width:100%; margin-top:5px;" onclick="adminAddLevel()">➕ Přidat Novou Vrstvu</button>
+            </div>
+            
+            <div class="admin-card">
+                <h4>🗑️ Reset Dat</h4>
+                <button class="danger" onclick="adminResetLeaderboard()">Vymazat Celý Žebříček</button>
+            </div>
+        </div>
+
+        <!-- UČITELSKÝ PANEL -->
+        <div id="teacher-panel" style="display: none;">
+            <h3 style="color: #4ccc54; text-align: center; margin-top: 0;">👨‍🏫 Učitelský Panel (Správa Projektů)</h3>
+            <p style="text-align: center; font-size: 0.85rem;" id="project-counter">Využito projektů: 0 / 15</p>
+
+            <div class="admin-card">
+                <h4>➕ Vytvořit Nový Projekt s Otázkami</h4>
+                <div class="input-group">
+                    <label>Název Projektu (např. Test z Fyziky 6.A):</label>
+                    <input type="text" id="proj-title" placeholder="Zadej název projektu...">
+                </div>
+
+                <div id="questions-builder"></div>
+
+                <button onclick="addQuestionField()" style="background: #e9c46a; margin-bottom: 10px;">➕ Přidat další otázku</button>
+                <button id="save-proj-btn" class="success" style="width: 100%; font-size: 1rem;" onclick="saveTeacherProject()">💾 Uložit Projekt a Vygenerovat PIN</button>
+            </div>
+
+            <div class="admin-card">
+                <h4>📂 Moje Projekty a PIN Kódy</h4>
+                <div id="teacher-projects-list"></div>
+            </div>
+
+            <div class="admin-card">
+                <h4>👨‍🎓 Seznam Studentů</h4>
+                <div id="teacher-students-list"></div>
+            </div>
+        </div>
+
+        <!-- ŽEBŘÍČEK -->
+        <div id="leaderboard-section">
+            <h3 style="color: #ffaa00; text-align: center; margin: 0 0 10px 0;">🏆 Žebříček Hráčů</h3>
+            <table class="leaderboard-table">
+                <thead>
+                    <tr><th>#</th><th>Hráč</th><th>Role</th><th>Vrstva</th><th>Body</th></tr>
+                </thead>
+                <tbody id="leaderboard-body"></tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <!-- MODAL OKNO OTÁZEK -->
+    <div id="modal" class="modal">
+        <div class="modal-content" id="modal-body"></div>
+    </div>
+
+    <script>
+        const BOARD_SIZE = 10;
+        const MAX_PROJECTS_PER_TEACHER = 15;
+        
+        let currentUser = null;
+        let userRole = 'student'; 
+        let isGuest = false;
+        let isRegisterMode = false;
+        let isDev = false;
+
+        let playerPos = { x: 0, y: 0 };
+        let hp = 100;
+        let score = 0;
+        let poisonCount = 0;
+        let boardState = [];
+        let isModalOpen = false;
+        let currentQuestion = null;
+        let hamstersDefeatedInLevel = 0;
+        let totalHamstersInLevel = 10;
+        let currentLevelIndex = 0;
+
+        let activeQuestionPool = [];
+        let levelQuestionPool = [];
+
+        // DYNAMICKÉ NASTAVENÍ HRY S MOŽNOSTÍ ÚPRAVY ADMINEM
+        let gameConfig = JSON.parse(localStorage.getItem('mole_config_v6')) || {
+            maxHp: 300,
+            foodChance: 0.15,
+            poisonChance: 0.07,
+            trapChance: 0.05
+        };
+
+        let usersDB = JSON.parse(localStorage.getItem('mole_users_v5')) || {};
+        let leaderboard = JSON.parse(localStorage.getItem('mole_lb_v5')) || [];
+        let teacherProjects = JSON.parse(localStorage.getItem('mole_projects_v5')) || {};
+
+        let DEFAULT_QUESTIONS = JSON.parse(localStorage.getItem('mole_global_q_v6')) || [
+            { q: "Kolik minut má jedna hodina?", options: ["60", "30", "90"], correct: 0 },
+            { q: "Které zvíře je mravec?", options: ["Hmyz", "Ryba", "Pták"], correct: 0 },
+            { q: "Hlavní město ČR?", options: ["Praha", "Brno", "Ostrava"], correct: 0 },
+            { q: "Kolik je 5 x 5?", options: ["25", "20", "30"], correct: 0 },
+            { q: "Kolik noh má pavouk?", options: ["8", "6", "4"], correct: 0 },
+            { q: "Která planeta je nejblíže Slunci?", options: ["Merkur", "Venuše", "Země"], correct: 0 },
+            { q: "Jaká je značka vody?", options: ["H2O", "CO2", "NaCl"], correct: 0 },
+            { q: "Který měsíc má 28 nebo 29 dní?", options: ["Únor", "Leden", "Březen"], correct: 0 },
+            { q: "Kolik je 10 / 2?", options: ["5", "2", "20"], correct: 0 },
+            { q: "Jaký tvar má fotbalový míč?", options: ["Koule", "Kchvíle", "Čtverec"], correct: 0 }
+        ];
+
+        let LEVELS = JSON.parse(localStorage.getItem('mole_levels_v6')) || [
+            { name: "Hlína 🪵", class: "dirt" },
+            { name: "Písek 🏜️", class: "sand" },
+            { name: "Kamení 🪨", class: "rock" }
+        ];
+
+        let customShopItems = [
+            { name: "🍎 Jablko (+30 HP)", cost: 50, effect: "heal" },
+            { name: "🧪 Jedová Bomba (+2)", cost: 40, effect: "poison" },
+            { name: "🐹 Křeččí Pomoc (Patová Situace)", cost: 100, effect: "bypass_hamster" }
+        ];
+
+        const TYPES = { EMPTY: 'empty', FOOD: 'food', POISON: 'poison', TRAP: 'trap', HAMSTER: 'hamster' };
+
+        window.addEventListener('keydown', (e) => {
+            if (isModalOpen || document.activeElement.tagName === "INPUT") return;
+            if (['ArrowUp', 'KeyW'].includes(e.code)) movePlayer(0, -1);
+            if (['ArrowDown', 'KeyS'].includes(e.code)) movePlayer(0, 1);
+            if (['ArrowLeft', 'KeyA'].includes(e.code)) movePlayer(-1, 0);
+            if (['ArrowRight', 'KeyD'].includes(e.code)) movePlayer(1, 0);
+        });
+
+        function addLog(msg) {
+            const list = document.getElementById('log-list');
+            const li = document.createElement('li');
+            li.textContent = msg;
+            list.insertBefore(li, list.firstChild);
+        }
+
+        function playAsGuest() {
+            isGuest = true;
+            currentUser = "Host_" + Math.floor(Math.random() * 8999 + 1000);
+            userRole = 'student';
+            setupUIForRole();
+            startNewGame();
+        }
+
+        function toggleAuthMode() {
+            isRegisterMode = !isRegisterMode;
+            document.getElementById('auth-title').textContent = isRegisterMode ? "Nová Registrace" : "Přihlášení Hráče / Učitele";
+            document.getElementById('role-group').style.display = isRegisterMode ? "block" : "none";
+            document.getElementById('auth-btn').textContent = isRegisterMode ? "Vytvořit účet" : "Přihlásit se 🔑";
+        }
+
+        function handleAuth() {
+            const userIn = document.getElementById('username').value.trim();
+            const passIn = document.getElementById('password').value.trim();
+            const avatarIn = document.getElementById('player-avatar').value;
+            const roleIn = document.getElementById('user-role').value;
+
+            if (!userIn || !passIn) return alert("Vyplň jméno a heslo!");
+
+            if (userIn === "admin" && passIn === "admin123") {
+                isDev = true; currentUser = "admin"; userRole = "admin";
+            } else if (isRegisterMode) {
+                if (usersDB[userIn]) return alert("Uživatel už existuje!");
+                usersDB[userIn] = { password: passIn, avatar: avatarIn, role: roleIn };
+                localStorage.setItem('mole_users_v5', JSON.stringify(usersDB));
+                currentUser = userIn; userRole = roleIn;
+            } else {
+                if (!usersDB[userIn] || usersDB[userIn].password !== passIn) return alert("Nesprávné údaje!");
+                currentUser = userIn; userRole = usersDB[userIn].role || 'student';
+            }
+
+            setupUIForRole();
+            startNewGame();
+        }
+
+        function setupUIForRole() {
+            document.getElementById('auth-screen').style.display = 'none';
+            document.getElementById('game-container').style.display = 'flex';
+            document.getElementById('display-name').textContent = currentUser;
+
+            document.getElementById('dev-panel').style.display = isDev ? 'block' : 'none';
+            document.getElementById('admin-master-panel').style.display = (userRole === 'admin') ? 'block' : 'none';
+            document.getElementById('teacher-panel').style.display = (userRole === 'teacher') ? 'block' : 'none';
+
+            if (userRole === 'admin') {
+                renderAdminUsersList();
+                renderAdminQuestionsList();
+                renderAdminLevelsList();
+                loadConfigToAdminInputs();
+            }
+
+            if (userRole === 'teacher') {
+                resetQuestionForm();
+                renderTeacherProjectsList();
+                renderStudentsList();
+            }
+            renderShop();
+        }
+
+        function startNewGame() {
+            currentLevelIndex = 0; hp = 100; score = 0; poisonCount = 0; hamstersDefeatedInLevel = 0;
+            activeQuestionPool = [...DEFAULT_QUESTIONS];
+            document.getElementById('active-project-name').textContent = "Výchozí (Obecný)";
+            document.getElementById('log-list').innerHTML = '';
+            addLog("🎮 Hra spuštěna!");
+            loadLevel(0);
+        }
+
+        function promptProjectPIN() {
+            let pin = prompt("Zadej 4-místný PIN projektu od učitele:");
+            if (!pin) return;
+            pin = pin.trim();
+            if (teacherProjects[pin]) {
+                activeQuestionPool = JSON.parse(JSON.stringify(teacherProjects[pin].questions));
+                document.getElementById('active-project-name').textContent = teacherProjects[pin].title;
+                addLog(`📌 Načten projekt: "${teacherProjects[pin].title}" (${activeQuestionPool.length} otázek)`);
+                alert(`Projekt "${teacherProjects[pin].title}" byl načten!`);
+                loadLevel(currentLevelIndex);
+            } else {
+                alert("Projekt s tímto PINem neexistuje!");
+            }
+        }
+
+        function loadLevel(idx) {
+            currentLevelIndex = idx;
+            hamstersDefeatedInLevel = 0;
+            playerPos = { x: 0, y: 0 };
+            
+            levelQuestionPool = JSON.parse(JSON.stringify(activeQuestionPool.length > 0 ? activeQuestionPool : DEFAULT_QUESTIONS));
+            totalHamstersInLevel = Math.min(10, levelQuestionPool.length);
+
+            document.getElementById('level-name').textContent = LEVELS[idx]?.name || "Neznámá Vrstva";
+            addLog(`Vstoupil jsi do vrstvy: ${LEVELS[idx]?.name || "Neznámá"} (Křečků: ${totalHamstersInLevel})`);
+            initBoard();
+        }
+
+        function initBoard() {
+            const boardEl = document.getElementById('game-board');
+            boardEl.innerHTML = '';
+            boardState = [];
+
+            let hamsters = [];
+            while (hamsters.length < totalHamstersInLevel) {
+                let rx = Math.floor(Math.random() * BOARD_SIZE);
+                let ry = Math.floor(Math.random() * BOARD_SIZE);
+                if ((rx !== 0 || ry !== 0) && !hamsters.some(h => h.x === rx && h.y === ry)) hamsters.push({x: rx, y: ry});
+            }
+
+            let pFood = gameConfig.foodChance;
+            let pPoison = pFood + gameConfig.poisonChance;
+            let pTrap = pPoison + gameConfig.trapChance;
+
+            for (let y = 0; y < BOARD_SIZE; y++) {
+                let row = [];
+                for (let x = 0; x < BOARD_SIZE; x++) {
+                    const cellEl = document.createElement('div');
+                    cellEl.className = 'cell'; cellEl.id = `cell-${x}-${y}`;
+                    boardEl.appendChild(cellEl);
+
+                    let type = TYPES.EMPTY;
+                    if (x !== 0 || y !== 0) {
+                        if (hamsters.some(h => h.x === x && h.y === y)) type = TYPES.HAMSTER;
+                        else {
+                            let r = Math.random();
+                            if (r < pFood) type = TYPES.FOOD;
+                            else if (r < pPoison) type = TYPES.POISON;
+                            else if (r < pTrap) type = TYPES.TRAP;
+                        }
+                    }
+                    row.push({ type, revealed: false });
+                }
+                boardState.push(row);
+            }
+            boardState[0][0].revealed = true;
+            updateBoard();
+        }
+
+        function movePlayer(dx, dy) {
+            if (isModalOpen || hp <= 0) return;
+            let nx = playerPos.x + dx, ny = playerPos.y + dy;
+            if (nx >= 0 && nx < BOARD_SIZE && ny >= 0 && ny < BOARD_SIZE) {
+                playerPos = { x: nx, y: ny };
+                let cell = boardState[ny][nx];
+                if (!cell.revealed) {
+                    cell.revealed = true;
+                    if (cell.type === TYPES.HAMSTER) {
+                        triggerHamster();
+                    } else if (cell.type === TYPES.FOOD) { 
+                        hp = Math.min(gameConfig.maxHp, hp + 20); score += 10; 
+                        addLog("🍎 Jídlo (+20 HP)");
+                        cell.type = TYPES.EMPTY;
+                    } else if (cell.type === TYPES.POISON) { 
+                        poisonCount++; score += 10; 
+                        addLog("🧪 Jed (+1 Jed)");
+                        cell.type = TYPES.EMPTY;
+                    } else if (cell.type === TYPES.TRAP) { 
+                        hp -= 20; 
+                        addLog("💥 Past (-20 HP)");
+                        cell.type = TYPES.EMPTY;
+                    }
+                }
+                updateBoard();
+                checkGameOver();
+            }
+        }
+
+        function checkGameOver() {
+            if (hp <= 0) {
+                addLog("☠️ Došla ti energie!");
+                alert("Konec Hry! Došly ti životy.");
+            }
+        }
+
+        function triggerHamster() {
+            isModalOpen = true;
+            
+            if (levelQuestionPool.length === 0) {
+                levelQuestionPool = JSON.parse(JSON.stringify(activeQuestionPool.length > 0 ? activeQuestionPool : DEFAULT_QUESTIONS));
+            }
+
+            let qIndex = Math.floor(Math.random() * levelQuestionPool.length);
+            let qRaw = levelQuestionPool.splice(qIndex, 1)[0];
+
+            let optionsWithIndex = qRaw.options.map((opt, i) => ({ text: opt, isCorrect: i === qRaw.correct }));
+            optionsWithIndex.sort(() => Math.random() - 0.5);
+
+            currentQuestion = { q: qRaw.q, options: optionsWithIndex };
+
+            const modal = document.getElementById('modal');
+            let buttonsHTML = currentQuestion.options.map((opt, i) => 
+                `<button style="display:block; width:100%; margin: 5px 0; font-size:1rem;" onclick="answerQ(${opt.isCorrect})">${opt.text}</button>`
+            ).join('');
+
+            document.getElementById('modal-body').innerHTML = `
+                <h2>🐹 Otázka od Křečka</h2>
+                <p style="font-size:1.1rem;"><strong>${currentQuestion.q}</strong></p>
+                <div>${buttonsHTML}</div>
+            `;
+            modal.style.display = 'flex';
+        }
+
+        function answerQ(isCorrect) {
+            document.getElementById('modal').style.display = 'none';
+            isModalOpen = false;
+            
+            const cell = boardState[playerPos.y][playerPos.x];
+            
+            if (isCorrect) {
+                score += 30; 
+                hamstersDefeatedInLevel++;
+                addLog("✅ Správně! (+30 bodů)");
+                cell.type = TYPES.EMPTY;
+                
+                if (hamstersDefeatedInLevel >= totalHamstersInLevel) {
+                    alert("🎉 Dokončil jsi všechny křečky v téže vrstvě!");
+                    if (currentLevelIndex + 1 < LEVELS.length) {
+                        loadLevel(currentLevelIndex + 1);
+                    } else {
+                        alert("🏆 Gratulujeme! Prokopal ses všemi vrstvami!");
+                    }
+                }
+            } else { 
+                hp -= 20; 
+                addLog("❌ Špatně! (-20 HP)");
+            }
+            updateBoard();
+            checkGameOver();
+        }
+
+        function updateBoard() {
+            const lvl = LEVELS[currentLevelIndex] || LEVELS[0];
+            const avatar = usersDB[currentUser]?.avatar || "🦔";
+
+            for (let y = 0; y < BOARD_SIZE; y++) {
+                for (let x = 0; x < BOARD_SIZE; x++) {
+                    const cell = boardState[y][x];
+                    const el = document.getElementById(`cell-${x}-${y}`);
+                    el.className = `cell ${lvl.class}`;
+                    if (cell.revealed) {
+                        el.classList.add('dug');
+                        el.textContent = (x === playerPos.x && y === playerPos.y) ? avatar : (cell.type === TYPES.HAMSTER ? '🐹' : '');
+                    } else el.textContent = '';
+                }
+            }
+
+            document.getElementById('hp').textContent = `${hp}/${gameConfig.maxHp}`;
+            document.getElementById('score').textContent = score;
+            document.getElementById('hamster-count').textContent = `${hamstersDefeatedInLevel}/${totalHamstersInLevel}`;
+            updateLeaderboardUI();
+        }
+
+        function renderShop() {
+            const container = document.getElementById('shop-items-container');
+            container.innerHTML = customShopItems.map((item, idx) => `
+                <div class="shop-item">
+                    <strong>${item.name}</strong>
+                    <p>Cena: ${item.cost}b</p>
+                    <button class="success" onclick="buyShopItem(${idx})">Koupit</button>
+                </div>
+            `).join('');
+        }
+
+        function buyShopItem(idx) {
+            let item = customShopItems[idx];
+            if (score >= item.cost) {
+                if (item.effect === 'bypass_hamster') {
+                    if (!isModalOpen && boardState[playerPos.y][playerPos.x].type !== TYPES.HAMSTER) {
+                        return alert("Položku 'Křeččí pomoc' můžeš použít jen při střetu s křečkem v patové situaci!");
+                    }
+                    score -= item.cost;
+                    addLog("🐹 Křeččí pomoc zakoupena! Otázka byla automaticky správně zodpovězena.");
+                    answerQ(true);
+                    return;
+                }
+
+                score -= item.cost;
+                if (item.effect === 'heal') hp = Math.min(gameConfig.maxHp, hp + 50);
+                if (item.effect === 'poison') poisonCount += 2;
+                addLog(`🛒 Koupil jsi: ${item.name}`);
+                updateBoard();
+            } else alert("Nedostatek bodů!");
+        }
+
+        function manualSave() {
+            if (isGuest) return alert("Host nemůže ukládat skóre!");
+            let entry = leaderboard.find(l => l.name === currentUser);
+            if (entry) { entry.score = Math.max(entry.score, score); }
+            else { leaderboard.push({ name: currentUser, role: userRole, level: LEVELS[currentLevelIndex].name, score }); }
+            localStorage.setItem('mole_lb_v5', JSON.stringify(leaderboard));
+            alert("✅ Skóre úspěšně uloženo!");
+            updateLeaderboardUI();
+            if (userRole === 'teacher') renderStudentsList();
+            if (userRole === 'admin') renderAdminUsersList();
+        }
+
+        function updateLeaderboardUI() {
+            const body = document.getElementById('leaderboard-body');
+            body.innerHTML = leaderboard.map((l, i) => `
+                <tr><td>${i+1}</td><td>${l.name}</td><td>${l.role}</td><td>${l.level}</td><td>${l.score}</td></tr>
+            `).join('');
+        }
+
+        /* 👑 MASTER ADMIN PANEL LOGIKA */
+
+        function renderAdminUsersList() {
+            const container = document.getElementById('admin-users-list');
+            let all = Object.entries(usersDB);
+            if (all.length === 0) return container.innerHTML = "<p style='font-size:0.8rem;'>Žádní registrování uživatelé.</p>";
+            container.innerHTML = all.map(([name, u]) => `
+                <div style="font-size:0.8rem; border-bottom:1px solid #4a3319; padding:4px 0; display:flex; justify-content:space-between; align-items:center;">
+                    <span><strong>${name}</strong> (${u.role || 'student'}) - Heslo: <i>${u.password}</i></span>
+                    <div>
+                        <button style="padding:1px 4px; font-size:0.7rem;" onclick="adminChangePass('${name}')">Změnit Heslo</button>
+                        <button class="danger" style="padding:1px 4px; font-size:0.7rem;" onclick="adminDeleteUser('${name}')">Smazat</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function adminChangePass(username) {
+            let p = prompt(`Nové heslo pro uživatele ${username}:`);
+            if (p) {
+                usersDB[username].password = p;
+                localStorage.setItem('mole_users_v5', JSON.stringify(usersDB));
+                renderAdminUsersList();
+                alert("Heslo změněno!");
+            }
+        }
+
+        function adminDeleteUser(username) {
+            if (confirm(`Smazat účet ${username}?`)) {
+                delete usersDB[username];
+                localStorage.setItem('mole_users_v5', JSON.stringify(usersDB));
+                renderAdminUsersList();
+            }
+        }
+
+        function renderAdminQuestionsList() {
+            const container = document.getElementById('admin-questions-list');
+            container.innerHTML = DEFAULT_QUESTIONS.map((q, i) => `
+                <div style="font-size:0.75rem; border-bottom:1px dashed #5c3d24; padding:3px 0; display:flex; justify-content:space-between; align-items:center;">
+                    <span>${i+1}. ${q.q} (✔ ${q.options[q.correct]})</span>
+                    <button class="danger" style="padding:1px 4px; font-size:0.7rem;" onclick="adminDeleteQuestion(${i})">X</button>
+                </div>
+            `).join('');
+        }
+
+        function adminAddGlobalQuestion() {
+            let q = document.getElementById('admin-new-q').value.trim();
+            let c = document.getElementById('admin-new-correct').value.trim();
+            let w1 = document.getElementById('admin-new-w1').value.trim();
+            let w2 = document.getElementById('admin-new-w2').value.trim();
+
+            if (!q || !c || !w1 || !w2) return alert("Vyplň všechny údaje pro otázku!");
+
+            DEFAULT_QUESTIONS.push({ q, options: [c, w1, w2], correct: 0 });
+            localStorage.setItem('mole_global_q_v6', JSON.stringify(DEFAULT_QUESTIONS));
+            renderAdminQuestionsList();
+            alert("Otázka přidána!");
+            document.getElementById('admin-new-q').value = '';
+            document.getElementById('admin-new-correct').value = '';
+            document.getElementById('admin-new-w1').value = '';
+            document.getElementById('admin-new-w2').value = '';
+        }
+
+        function adminDeleteQuestion(idx) {
+            DEFAULT_QUESTIONS.splice(idx, 1);
+            localStorage.setItem('mole_global_q_v6', JSON.stringify(DEFAULT_QUESTIONS));
+            renderAdminQuestionsList();
+        }
+
+        function loadConfigToAdminInputs() {
+            document.getElementById('admin-cfg-maxhp').value = gameConfig.maxHp;
+            document.getElementById('admin-cfg-food').value = Math.round(gameConfig.foodChance * 100);
+            document.getElementById('admin-cfg-poison').value = Math.round(gameConfig.poisonChance * 100);
+            document.getElementById('admin-cfg-trap').value = Math.round(gameConfig.trapChance * 100);
+        }
+
+        function adminSaveConfig() {
+            gameConfig.maxHp = parseInt(document.getElementById('admin-cfg-maxhp').value) || 300;
+            gameConfig.foodChance = (parseInt(document.getElementById('admin-cfg-food').value) || 15) / 100;
+            gameConfig.poisonChance = (parseInt(document.getElementById('admin-cfg-poison').value) || 7) / 100;
+            gameConfig.trapChance = (parseInt(document.getElementById('admin-cfg-trap').value) || 5) / 100;
+
+            localStorage.setItem('mole_config_v6', JSON.stringify(gameConfig));
+            alert("⚙️ Parametry hry byly uloženy!");
+            updateBoard();
+        }
+
+        function renderAdminLevelsList() {
+            const container = document.getElementById('admin-levels-list');
+            container.innerHTML = LEVELS.map((l, i) => `
+                <div style="font-size:0.8rem; border-bottom:1px solid #5c3d24; padding:3px 0; display:flex; justify-content:space-between; align-items:center;">
+                    <span>Vrstva ${i+1}: <strong>${l.name}</strong> (${l.class})</span>
+                    <button class="danger" style="padding:1px 4px; font-size:0.7rem;" onclick="adminDeleteLevel(${i})">Smazat</button>
+                </div>
+            `).join('');
+        }
+
+        function adminAddLevel() {
+            let name = document.getElementById('admin-new-lvl-name').value.trim();
+            let cls = document.getElementById('admin-new-lvl-class').value;
+            if (!name) return alert("Zadej název vrstvy!");
+            LEVELS.push({ name, class: cls });
+            localStorage.setItem('mole_levels_v6', JSON.stringify(LEVELS));
+            renderAdminLevelsList();
+            alert("Vrstva přidána!");
+            document.getElementById('admin-new-lvl-name').value = '';
+        }
+
+        function adminDeleteLevel(idx) {
+            if (LEVELS.length <= 1) return alert("Musí zůstat alespoň jedna vrstva!");
+            LEVELS.splice(idx, 1);
+            localStorage.setItem('mole_levels_v6', JSON.stringify(LEVELS));
+            renderAdminLevelsList();
+        }
+
+        function adminResetLeaderboard() {
+            if (confirm("Opravdu vymazat celý žebříček hráčů?")) {
+                leaderboard = [];
+                localStorage.setItem('mole_lb_v5', JSON.stringify(leaderboard));
+                updateLeaderboardUI();
+            }
+        }
+
+        /* 👨‍🏫 UČITELSKÝ PANEL */
+
+        let questionCount = 0;
+
+        function resetQuestionForm() {
+            document.getElementById('proj-title').value = '';
+            document.getElementById('questions-builder').innerHTML = '';
+            questionCount = 0;
+            addQuestionField();
+            updateProjectCounter();
+        }
+
+        function addQuestionField() {
+            questionCount++;
+            const container = document.getElementById('questions-builder');
+            const qDiv = document.createElement('div');
+            qDiv.className = 'q-box';
+            qDiv.id = `q-box-${questionCount}`;
+            qDiv.innerHTML = `
+                <strong>Otázka č. ${questionCount}:</strong>
+                <input type="text" class="q-title" placeholder="Znění otázky..." style="width:100%;">
+                <input type="text" class="q-correct" placeholder="✔ Správná odpověď" style="width:100%; border-color: green;">
+                <input type="text" class="q-wrong1" placeholder="✖ Špatná odpověď 1" style="width:48%;">
+                <input type="text" class="q-wrong2" placeholder="✖ Špatná odpověď 2" style="width:48%;">
+            `;
+            container.appendChild(qDiv);
+        }
+
+        function saveTeacherProject() {
+            let myProjects = Object.entries(teacherProjects).filter(([pin, p]) => p.author === currentUser);
+            if (myProjects.length >= MAX_PROJECTS_PER_TEACHER && !isDev) {
+                return alert(`Dosáhl jsi limitu ${MAX_PROJECTS_PER_TEACHER} projektů!`);
+            }
+
+            let title = document.getElementById('proj-title').value.trim();
+            if (!title) return alert("Zadej název projektu!");
+
+            let boxes = document.querySelectorAll('.q-box');
+            let questions = [];
+
+            boxes.forEach(box => {
+                let qText = box.querySelector('.q-title').value.trim();
+                let correctA = box.querySelector('.q-correct').value.trim();
+                let wrongB = box.querySelector('.q-wrong1').value.trim();
+                let wrongC = box.querySelector('.q-wrong2').value.trim();
+
+                if (qText && correctA && wrongB && wrongC) {
+                    questions.push({ q: qText, options: [correctA, wrongB, wrongC], correct: 0 });
+                }
+            });
+
+            if (questions.length === 0) return alert("Vyplň alespoň jednu kompletní otázku!");
+
+            let pin = Math.floor(1000 + Math.random() * 9000).toString();
+            teacherProjects[pin] = { title, author: currentUser, questions };
+            localStorage.setItem('mole_projects_v5', JSON.stringify(teacherProjects));
+            
+            alert(`✅ Projekt "${title}" byl uložen!\n📌 PIN Kód: ${pin}`);
+            resetQuestionForm();
+            renderTeacherProjectsList();
+        }
+
+        function deleteProject(pin) {
+            if (confirm("Opravdu smazat tento projekt?")) {
+                delete teacherProjects[pin];
+                localStorage.setItem('mole_projects_v5', JSON.stringify(teacherProjects));
+                renderTeacherProjectsList();
+            }
+        }
+
+        function updateProjectCounter() {
+            let myCount = Object.values(teacherProjects).filter(p => p.author === currentUser).length;
+            const counterEl = document.getElementById('project-counter');
+            const saveBtn = document.getElementById('save-proj-btn');
+            
+            if (counterEl) counterEl.textContent = `Využito projektů: ${myCount} / ${MAX_PROJECTS_PER_TEACHER}`;
+            if (saveBtn) {
+                saveBtn.disabled = (myCount >= MAX_PROJECTS_PER_TEACHER && !isDev);
+            }
+        }
+
+        function renderTeacherProjectsList() {
+            const container = document.getElementById('teacher-projects-list');
+            if (!container) return;
+            const myProjs = Object.entries(teacherProjects).filter(([pin, p]) => p.author === currentUser);
+            
+            updateProjectCounter();
+
+            if (myProjs.length === 0) {
+                container.innerHTML = "<p style='font-size:0.85rem; color:#d4a373;'>Žádné vlastní projekty.</p>";
+                return;
+            }
+
+            container.innerHTML = myProjs.map(([pin, p]) => `
+                <div style="font-size: 0.85rem; padding: 6px; border-bottom: 1px solid #5c3d24; display:flex; justify-content:space-between; align-items:center;">
+                    <div>📌 <strong>PIN: ${pin}</strong> - ${p.title} (${p.questions.length} otázek)</div>
+                    <button class="danger" style="padding: 2px 6px; font-size:0.75rem;" onclick="deleteProject('${pin}')">Smazat</button>
+                </div>
+            `).join('');
+        }
+
+        function renderStudentsList() {
+            const container = document.getElementById('teacher-students-list');
+            if (!container) return;
+
+            let students = Object.entries(usersDB).filter(([username, data]) => data.role === 'student');
+
+            if (students.length === 0) {
+                container.innerHTML = "<p style='font-size:0.85rem; color:#d4a373;'>Žádní registrování studenti.</p>";
+                return;
+            }
+
+            container.innerHTML = students.map(([username, data]) => {
+                let lbEntry = leaderboard.find(l => l.name === username);
+                let scoreText = lbEntry ? `${lbEntry.score} bodů` : "Zatím nehrál/a";
+                return `
+                    <div style="font-size: 0.85rem; padding: 6px; border-bottom: 1px solid #5c3d24; display:flex; justify-content:space-between; align-items:center;">
+                        <div>👨‍🎓 <strong>${username}</strong> (${data.avatar}) — Skóre: ${scoreText}</div>
+                        <button class="danger" style="padding: 2px 6px; font-size:0.75rem;" onclick="deleteStudent('${username}')">Odstranit</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function deleteStudent(studentName) {
+            if (confirm(`Opravdu smazat studenta ${studentName}?`)) {
+                delete usersDB[studentName];
+                leaderboard = leaderboard.filter(l => l.name !== studentName);
+                localStorage.setItem('mole_users_v5', JSON.stringify(usersDB));
+                localStorage.setItem('mole_lb_v5', JSON.stringify(leaderboard));
+                renderStudentsList();
+                updateLeaderboardUI();
+            }
+        }
+
+        /* CHEATY PRO TVŮRCE */
+        function devAddHP(val) { hp = Math.max(0, Math.min(gameConfig.maxHp, hp + val)); updateBoard(); }
+        function devAddScore(val) { score = Math.max(0, score + val); updateBoard(); }
+        function devNextLevel() { if (currentLevelIndex + 1 < LEVELS.length) loadLevel(currentLevelIndex + 1); }
+
+        function logout() { location.reload(); }
+    </script>
+</body>
+</html>
